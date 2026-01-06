@@ -16,8 +16,17 @@ The server will allow for creating n numbers of tables, of which each allows to 
 
 Tables in the database will be stored in the form of csv files, which can be manipulated by both the server and client. The columns in the tables will utilize a custom data type when allocating memory. 
 
+code for this under:
+table.c
+table.h
 
-Allowing multiple users to connect to the server simultaneously and manipulating the tables would use forking and sockets.
+Allowing multiple users to connect to the server simultaneously and manipulating the tables would use sockets.
+
+code for this under:
+server.c
+client.c
+networking.c
+networking.h
 
 Extra:
 Providing the statistics of every tables (perhaps using stat + other methods). Examples include table size, # of table rows, mean/median of quantitative columns, repetition of a certain string, etc.
@@ -35,4 +44,4 @@ How you are breaking down the project and who is responsible for which parts.
 
 01/06: makefile and understanding how to do csv file management
 01/07: working on allow user manipulation of csv files
-... (will work on rest of timeline later) ...
+... (will work on rest of timeline later) ..
