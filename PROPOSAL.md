@@ -6,42 +6,70 @@ Rahul Deb
  
 # Intentions:
 
-A database allowing users to manipulate tables.
+A club management system that allows students to register, join clubs, and view their weekly schedules. Admins can create, edit, and delete clubs while managing member capacity.
  
 # Intended usage:
 
-The server will allow for creating n numbers of tables, of which each allows to set up multiple columns…probably by asking the server user to select options and input values. Multiple clients are allowed to connect to this server, and they can select any table that the server has already created. After doing so, client users can manipulate a table by performing one of the following row operations: create, edit, delete. These will selectable options, after which the client user provides values if necessary.  
+The system uses a client-server model where multiple clients can connect simultaneously. 
+
+**Non-admin users can:**
+- Register for an account with their name, email, graduation year, and password
+- Login with their user ID and password
+- Browse available clubs with meeting days and capacity info
+- Join clubs
+- Leave clubs
+- View their weekly schedule showing which clubs meet on which days
+- Edit their profile information
+
+**Admin users can:**
+- Do everything regular users can do, plus:
+- Create new clubs with custom names, meeting days, and capacity limits
+- Edit existing clubs (change name, days, capacity)
+- Delete clubs (automatically removes them from all members' schedules)
+
+The interface is text-based with numbered menus. Users navigate by entering numbers for their choices.
  
 # Technical Details:
 
-Tables in the database will be stored in the form of csv files, which can be manipulated by both the server and client. The columns in the tables will utilize a custom data type when allocating memory. 
+**File I/O and Data:**
+Tables are stored as binary files (`users.dat` and `clubs.dat`) using structs. Each entry has fields like ID, active status, and timestamps. The system reads/writes directly to these files for all operations.
 
-code for this under:
-table.c
-table.h
+Files used:
+- `table.c` / `table.h` - file operations for user and club tables
+- `entry.c` / `entry.h` - struct definitions and initialization
 
-Allowing multiple users to connect to the server simultaneously and manipulating the tables would use sockets.
+**Networking:**
+Uses TCP sockets to allow multiple clients to connect to a single server. The server forks child processes to handle each client independently, so multiple people can use the system at once.
 
-code for this under:
-server.c
-client.c
-networking.c
-networking.h
+Files used:
+- `server.c` - handles incoming connections and processes requests
+- `client.c` - user interface and sends commands to server
+- `networking.c` / `networking.h` - socket setup and connection functions
 
-Extra:
-Providing the statistics of every tables (perhaps using stat + other methods). Examples include table size, # of table rows, mean/median of quantitative columns, repetition of a certain string, etc.
+**Processes:**
+The server uses `fork()` to create a subprocess for each connected client. This lets multiple users interact with the database simultaneously without blocking each other.
 
-... (will work on rest of technical details later) ...
+**Protocol:**
+Custom message protocol with defined message types (register, login, join club, etc.) and response codes. Messages are sent as structs over sockets.
 
-A description of your technical design. This should include: 
-   
-How you will be using the topics covered in class in the project.
-     
-How you are breaking down the project and who is responsible for which parts.
-  
+Files used:
+- `protocol.h` - defines message types and response structures
+
+**Extra Features:**
+- Password authentication for login
+- Admin role system (admin has ID 1 by default)
+- Capacity checking (clubs can't exceed their member limit)
+- Automatic cleanup when clubs are deleted (removes from all user schedules)
+- Timestamps for when entries are created/updated
+- Default clubs created on first server startup
     
 # Intended pacing:
 
-01/06: makefile and understanding how to do csv file management
-01/07: working on allow user manipulation of csv files
-... (will work on rest of timeline later) ..
+- **01/06**: Set up basic file structure, makefile, and networking code
+- **01/07**: Implement user registration and login with file I/O
+- **01/08**: Add club creation and listing functionality
+- **01/09**: Implement join/leave club features
+- **01/10**: Add schedule viewing
+- **01/13**: Implement admin features (create/edit/delete clubs)
+- **01/14**: Add profile editing and capacity limits
+- **01/15**: Bug fixes, testing, and documentation
