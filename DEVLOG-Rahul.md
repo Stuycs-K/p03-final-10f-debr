@@ -10,3 +10,5 @@ Started writing the overall and technical details of the PROPOSAL and started wo
 ### 2026-01-07 - Switched to struct-based approach and created entry definitions
 Realized that using CSV files would be too complicated. Switched to using binary files with structs for users and clubs. Created the user_entry and club_entry structs with proper fields like ID, names, memberships, etc. Moved struct definitions to header files and wrote initialization functions.
 
+### 2026-01-08 - Implemented entry initialization and print functions
+Finished writing the initialization functions for user and club entries. Added print functions to display entry data for debugging. Started planning out what functions I'll need for the table operations.
