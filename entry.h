@@ -24,4 +24,9 @@ struct club_entry {
     int active;
 };
 
+void user_entry_init(struct user_entry* entry);
+void club_entry_init(struct club_entry* entry);
+void user_entry_print(const struct user_entry* entry);
+void club_entry_print(const struct club_entry* entry);
+
 #endif
