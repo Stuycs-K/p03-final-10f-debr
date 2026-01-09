@@ -21,4 +21,7 @@ int club_table_update(const char* filename, int index, struct club_entry* entry)
 int user_table_delete(const char* filename, int id);
 int club_table_delete(const char* filename, int id);
 
+int user_table_get_next_id(const char* filename);
+int club_table_get_next_id(const char* filename);
+
 #endif
