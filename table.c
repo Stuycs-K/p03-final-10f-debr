@@ -56,9 +56,58 @@ int club_table_insert(const char* filename, struct club_entry* entry) {
 
 
 int user_table_get_next_id(const char* filename) {
-
+    int fd = open(filename, O_RDONLY);
+    if(fd == -1) return 1;
+    
+    struct stat st;
+    if(stat(filename, &st) == -1 || st.st_size == 0) {
+        return 1;
+    }
+    
+    int count = st.st_size / sizeof(struct user_entry);
+    struct user_entry *entries = malloc(count * sizeof(struct user_entry));
+    if (!entries) {
+        return 1;
+    }
+    
+    read(fd, entries, st.st_size);
+    
+    int max_id = 0;
+    for(int i = 0; i < count; i++) {
+        if (entries[i].id > max_id) {
+            max_id = entries[i].id;
+        }
+    }
+    
+    free(entries);
+    return max_id + 1;
 }
 
 int club_table_get_next_id(const char* filename) {
+    int fd = open(filename, O_RDONLY);
+    if (fd == -1) return 1;
 
+    struct stat st;
+    if (stat(filename, &st) == -1 || st.st_size == 0) {
+        return 1;
+    }
+
+    
+    int count = st.st_size / sizeof(struct club_entry);
+    struct club_entry *entries = malloc(count * sizeof(struct club_entry));
+    if (!entries) {
+        return 1;
+    }
+    
+    read(fd, entries, st.st_size);
+    
+    int max_id = 0;
+    for(int i = 0; i < count; i++) {
+        if (entries[i].id > max_id) {
+            max_id = entries[i].id;
+        }
+    }
+    
+    free(entries);
+    return max_id + 1;
 }
