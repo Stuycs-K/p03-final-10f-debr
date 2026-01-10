@@ -12,3 +12,6 @@ Realized that using CSV files would be too complicated. Switched to using binary
 
 ### 2026-01-08 - Implemented entry initialization and print functions
 Finished writing the initialization functions for user and club entries. Added print functions to display entry data for debugging. Started planning out what functions I'll need for the table operations.
+
+### 2026-01-09 - Built table operations
+Wrote the main table functions: create, insert, read, read_all, update, and delete for both users and clubs. Implemented auto-incrementing ID system by scanning through existing entries. Got the basic file I/O working with binary data.
