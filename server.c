@@ -124,6 +124,215 @@ void subserver(int client_socket) {
     close(client_socket);
 }
 
+void handle_register(int client_socket, struct message *msg) {
+    struct response resp;
+    struct user_entry user;
+    
+    char first[MAX_NAME_LEN], last[MAX_NAME_LEN], email[MAX_EMAIL_LEN];
+    int grad_year;
+    
+    sscanf(msg->data, "%s %s %s %d", first, last, email, &grad_year);
+    
+    user_entry_init(&user);
+    strncpy(user.first_name, first, MAX_NAME_LEN - 1);
+    strncpy(user.last_name, last, MAX_NAME_LEN - 1);
+    strncpy(user.email, email, MAX_EMAIL_LEN - 1);
+    user.grad_year = grad_year;
+    
+    if (user_table_insert("users.dat", &user) == 0) {
+        resp.status = RESP_OK;
+        sprintf(resp.data, "Registered! Your ID is %d", user.id);
+    } else {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "Registration failed", MSG_SIZE - 1);
+    }
+    
+    write(client_socket, &resp, sizeof(struct response));
+}
+
+void handle_login(int client_socket, struct message *msg) {
+    struct response resp;
+    int user_id;
+    struct user_entry user;
+    
+    sscanf(msg->data, "%d", &user_id);
+    
+    if (user_table_read("users.dat", user_id, &user) == 0) {
+        resp.status = RESP_OK;
+        sprintf(resp.data, "Welcome back, %s %s!", user.first_name, user.last_name);
+        write(client_socket, &resp, sizeof(struct response));
+        write(client_socket, &user_id, sizeof(int));
+    } else {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "User not found", MSG_SIZE - 1);
+        write(client_socket, &resp, sizeof(struct response));
+        user_id = -1;
+        write(client_socket, &user_id, sizeof(int));
+    }
+}
+
+void handle_list_clubs(int client_socket) {
+    int fd = open("clubs.dat", O_RDONLY);
+    if (fd == -1) {
+        int count = 0;
+        write(client_socket, &count, sizeof(int));
+        return;
+    }
+    
+    struct stat st;
+    stat("clubs.dat", &st);
+    int count = st.st_size / sizeof(struct club_entry);
+    
+    write(client_socket, &count, sizeof(int));
+    
+    struct club_entry club;
+    int bytes_read;
+    
+    while ((bytes_read = read(fd, &club, sizeof(struct club_entry))) > 0) {
+        if (club.active) {
+            write(client_socket, &club, sizeof(struct club_entry));
+        }
+    }
+}
+
+int find_user_index(int user_id) {
+    int fd = open("users.dat", O_RDONLY);
+    if (fd == -1) return -1;
+    
+    struct user_entry user;
+    int index = 0;
+    
+    while (read(fd, &user, sizeof(struct user_entry)) > 0) {
+        if (user.id == user_id) {
+            return index;
+        }
+        index++;
+    }
+    
+    return -1;
+}
+
+void handle_join_club(int client_socket, struct message *msg, int user_id) {
+    struct response resp;
+    
+    if (user_id == -1) {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "Please login first", MSG_SIZE - 1);
+        write(client_socket, &resp, sizeof(struct response));
+        return;
+    }
+    
+    int club_id;
+    sscanf(msg->data, "%d", &club_id);
+    
+    struct user_entry user;
+    
+    if (user_table_read("users.dat", user_id, &user) == 0) {
+        for (int i = 0; i < user.membership_count; i++) {
+            if (user.memberships[i] == club_id) {
+                resp.status = RESP_ERROR;
+                strncpy(resp.data, "Already in this club", MSG_SIZE - 1);
+                write(client_socket, &resp, sizeof(struct response));
+                return;
+            }
+        }
+        
+        if (user.membership_count < MAX_MEMBERSHIPS) {
+            user.memberships[user.membership_count++] = club_id;
+            
+            int index = find_user_index(user_id);
+            if (index != -1) {
+                user_table_update("users.dat", index, &user);
+                resp.status = RESP_OK;
+                strncpy(resp.data, "Joined club successfully!", MSG_SIZE - 1);
+            } else {
+                resp.status = RESP_ERROR;
+                strncpy(resp.data, "Update failed", MSG_SIZE - 1);
+            }
+        } else {
+            resp.status = RESP_ERROR;
+            strncpy(resp.data, "Maximum clubs reached", MSG_SIZE - 1);
+        }
+    } else {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "User not found", MSG_SIZE - 1);
+    }
+    
+    write(client_socket, &resp, sizeof(struct response));
+}
+
+void handle_leave_club(int client_socket, struct message *msg, int user_id) {
+    struct response resp;
+    
+    if (user_id == -1) {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "Please login first", MSG_SIZE - 1);
+        write(client_socket, &resp, sizeof(struct response));
+        return;
+    }
+    
+    int club_id;
+    sscanf(msg->data, "%d", &club_id);
+    
+    struct user_entry user;
+    
+    if (user_table_read("users.dat", user_id, &user) == 0) {
+        int found = -1;
+        for (int i = 0; i < user.membership_count; i++) {
+            if (user.memberships[i] == club_id) {
+                found = i;
+                break;
+            }
+        }
+        
+        if (found != -1) {
+            for (int i = found; i < user.membership_count - 1; i++) {
+                user.memberships[i] = user.memberships[i + 1];
+            }
+            user.membership_count--;
+            
+            int index = find_user_index(user_id);
+            if (index != -1) {
+                user_table_update("users.dat", index, &user);
+                resp.status = RESP_OK;
+                strncpy(resp.data, "Left club successfully!", MSG_SIZE - 1);
+            } else {
+                resp.status = RESP_ERROR;
+                strncpy(resp.data, "Update failed", MSG_SIZE - 1);
+            }
+        } else {
+            resp.status = RESP_ERROR;
+            strncpy(resp.data, "Not in this club", MSG_SIZE - 1);
+        }
+    } else {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "User not found", MSG_SIZE - 1);
+    }
+    
+    write(client_socket, &resp, sizeof(struct response));
+}
+
+void handle_view_schedule(int client_socket, int user_id) {
+    if (user_id == -1) {
+        int count = 0;
+        write(client_socket, &count, sizeof(int));
+        return;
+    }
+    
+    struct user_entry user;
+    if (user_table_read("users.dat", user_id, &user) == 0) {
+        write(client_socket, &user.membership_count, sizeof(int));
+        
+        for (int i = 0; i < user.membership_count; i++) {
+            struct club_entry club;
+            if (club_table_read("clubs.dat", user.memberships[i], &club) == 0) {
+                write(client_socket, &club, sizeof(struct club_entry));
+            }
+        }
+    }
+}
+
+
 void sighandler(int signo) {
     if (signo == SIGINT) {
         printf("\nServer shutting down\n");
