@@ -15,3 +15,6 @@ Finished writing the initialization functions for user and club entries. Added p
 
 ### 2026-01-09 - Built table operations
 Wrote the main table functions: create, insert, read, read_all, update, and delete for both users and clubs. Implemented auto-incrementing ID system by scanning through existing entries. Got the basic file I/O working with binary data.
+
+### 2026-01-10 - Started networking and server setup
+Created protocol.h with message types for client-server communication. Wrote networking.c with socket setup functions for both server and client. Started working on server.c and initialized the database with default account and sample clubs. Set up forking to handle multiple clients.
