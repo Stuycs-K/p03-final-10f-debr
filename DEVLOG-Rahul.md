@@ -18,3 +18,6 @@ Wrote the main table functions: create, insert, read, read_all, update, and dele
 
 ### 2026-01-10 - Started networking and server setup
 Created protocol.h with message types for client-server communication. Wrote networking.c with socket setup functions for both server and client. Started working on server.c and initialized the database with default account and sample clubs. Set up forking to handle multiple clients.
+
+### 2026-01-11 - Completed server handlers and started client interface
+Finished writing server-side handlers for register, login, list clubs, join/leave clubs, and view schedule. Started working on client.c with the main menu system. Got basic client-server communication working with the protocol messages.
