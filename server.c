@@ -97,7 +97,6 @@ void subserver(int client_socket) {
                 break;
             case MSG_LOGIN:
                 handle_login(client_socket, &msg);
-                read(client_socket, &user_id, sizeof(int));
                 break;
             case MSG_LIST_CLUBS:
                 handle_list_clubs(client_socket);
@@ -181,18 +180,25 @@ void handle_list_clubs(int client_socket) {
     
     struct stat st;
     stat("clubs.dat", &st);
-    int count = st.st_size / sizeof(struct club_entry);
-    
-    write(client_socket, &count, sizeof(int));
+    int total_count = st.st_size / sizeof(struct club_entry);
     
     struct club_entry club;
-    int bytes_read;
+    int active_count = 0;
+    for(int i = 0; i < total_count; i++) {
+        read(fd, &club, sizeof(struct club_entry));
+        if(club.active) active_count++;
+    }
     
-    while ((bytes_read = read(fd, &club, sizeof(struct club_entry))) > 0) {
-        if (club.active) {
+    write(client_socket, &active_count, sizeof(int));
+    
+    lseek(fd, 0, SEEK_SET);
+    for(int i = 0; i < total_count; i++) {
+        read(fd, &club, sizeof(struct club_entry));
+        if(club.active) {
             write(client_socket, &club, sizeof(struct club_entry));
         }
     }
+    close(fd);
 }
 
 int find_user_index(int user_id) {
@@ -204,10 +210,12 @@ int find_user_index(int user_id) {
     
     while (read(fd, &user, sizeof(struct user_entry)) > 0) {
         if (user.id == user_id) {
+            close(fd);
             return index;
         }
         index++;
     }
+    close(fd);
     
     return -1;
 }
