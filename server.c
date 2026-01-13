@@ -20,6 +20,12 @@ void handle_list_clubs(int client_socket);
 void handle_join_club(int client_socket, struct message *msg, int user_id);
 void handle_leave_club(int client_socket, struct message *msg, int user_id);
 void handle_view_schedule(int client_socket, int user_id);
+void handle_view_schedule(int client_socket, int user_id);
+void handle_create_club(int client_socket, struct message *msg, int user_id);
+void handle_edit_club(int client_socket, struct message *msg, int user_id);
+void handle_delete_club(int client_socket, struct message *msg, int user_id);
+void handle_get_club_stats(int client_socket, struct message *msg);
+
 void init_database();
 int find_user_index(int user_id);
 int check_admin(int user_id);
@@ -124,6 +130,18 @@ void subserver(int client_socket) {
                 break;
             case MSG_VIEW_SCHEDULE:
                 handle_view_schedule(client_socket, user_id);
+                break;
+            case MSG_CREATE_CLUB:
+                handle_create_club(client_socket, &msg, user_id);
+                break;
+            case MSG_EDIT_CLUB:
+                handle_edit_club(client_socket, &msg, user_id);
+                break;
+            case MSG_DELETE_CLUB:   
+                handle_delete_club(client_socket, &msg, user_id);
+                break;
+            case MSG_GET_CLUB_STATS:
+                handle_get_club_stats(client_socket, &msg);
                 break;
             case MSG_QUIT:
                 running = 0;

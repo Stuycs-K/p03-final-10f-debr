@@ -11,6 +11,11 @@
 #define MSG_VIEW_SCHEDULE 6
 #define MSG_QUIT 7
 
+#define MSG_CREATE_CLUB 8
+#define MSG_EDIT_CLUB 9
+#define MSG_DELETE_CLUB 10
+#define MSG_GET_CLUB_STATS 11
+
 #define RESP_OK 0
 #define RESP_ERROR -1
 
