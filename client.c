@@ -7,6 +7,7 @@
 #include "entry.h"
 
 int user_id = -1;
+int is_admin = 0;
 int server_socket;
 
 void show_main_menu();
@@ -118,7 +119,7 @@ void handle_register() {
     clear_screen();
     printf("--- Register New Account ---\n\n");
     
-    char first[MAX_NAME_LEN], last[MAX_NAME_LEN], email[MAX_EMAIL_LEN];
+    char first[MAX_NAME_LEN], last[MAX_NAME_LEN], email[MAX_EMAIL_LEN], password[MAX_PASSWORD_LEN];
     int grad_year;
     
     printf("First Name: ");
@@ -138,7 +139,13 @@ void handle_register() {
     for (int i = 0; email[i]; i++) {
         if (email[i] == '\n') email[i] = '\0';
     }
-    
+
+    printf("Password: ");
+    fgets(password, MAX_PASSWORD_LEN, stdin);
+    for (int i = 0; password[i]; i++) {
+        if (password[i] == '\n') password[i] = '\0';
+    }
+
     printf("Graduation Year: ");
     scanf("%d", &grad_year);
     char temp[10];
@@ -146,7 +153,7 @@ void handle_register() {
     
     struct message msg;
     msg.type = MSG_REGISTER;
-    sprintf(msg.data, "%s %s %s %d", first, last, email, grad_year);
+    sprintf(msg.data, "%s %s %s %d", first, last, email, password, grad_year);
     
     write(server_socket, &msg, sizeof(struct message));
     
@@ -162,14 +169,22 @@ void handle_login() {
     printf("--- Login ---\n\n");
     
     int id;
+    char password[MAX_PASSWORD_LEN];
+
     printf("Enter your User ID: ");
     scanf("%d", &id);
     char temp[10];
     fgets(temp, 10, stdin);
+
+    printf("Password: ");
+    fgets(password, MAX_PASSWORD_LEN, stdin);
+    for (int i = 0; password[i]; i++) {
+        if (password[i] == '\n') password[i] = '\0';
+    }
     
     struct message msg;
     msg.type = MSG_LOGIN;
-    sprintf(msg.data, "%d", id);
+    sprintf(msg.data, "%d", id, password);
     
     write(server_socket, &msg, sizeof(struct message));
     
@@ -181,6 +196,9 @@ void handle_login() {
     
     if (resp.status == RESP_OK) {
         user_id = returned_id;
+        if(strstr(resp.data,"Admin") != NULL) {
+            is_admin = 1;
+        }
     }
     
     printf("\n%s\n", resp.data);

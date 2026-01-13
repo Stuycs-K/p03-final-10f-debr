@@ -10,6 +10,7 @@
 #include "protocol.h"
 #include "table.h"
 #include "entry.h"
+#include <time.h>
 
 void sighandler(int signo);
 void subserver(int client_socket);
@@ -21,6 +22,7 @@ void handle_leave_club(int client_socket, struct message *msg, int user_id);
 void handle_view_schedule(int client_socket, int user_id);
 void init_database();
 int find_user_index(int user_id);
+int check_admin(int user_id);
 
 int main() {
     signal(SIGINT, sighandler);
@@ -50,6 +52,19 @@ int main() {
 void init_database() {
     user_table_create("users.dat");
     club_table_create("clubs.dat");
+
+    struct user_entry admin;
+    if (user_table_read("users.dat", 1, &admin) == -1) {
+        user_entry_init(&admin);
+        strncpy(admin.first_name, "Admin", MAX_NAME_LEN - 1);
+        strncpy(admin.last_name, "User", MAX_NAME_LEN - 1);
+        strncpy(admin.email, "admin@stuy.edu", MAX_EMAIL_LEN - 1);
+        strncpy(admin.password, "admin123", MAX_PASSWORD_LEN - 1);
+        admin.grad_year = 2026;
+        admin.is_admin = 1;
+        user_table_insert("users.dat", &admin);
+        printf("Created admin account - ID: 1, Password: admin123\n");
+    }
     
     struct club_entry test;
     if(club_table_read("clubs.dat", 1, &test) == -1) {
@@ -127,16 +142,18 @@ void handle_register(int client_socket, struct message *msg) {
     struct response resp;
     struct user_entry user;
     
-    char first[MAX_NAME_LEN], last[MAX_NAME_LEN], email[MAX_EMAIL_LEN];
+    char first[MAX_NAME_LEN], last[MAX_NAME_LEN], email[MAX_EMAIL_LEN], password[MAX_PASSWORD_LEN];
     int grad_year;
     
-    sscanf(msg->data, "%s %s %s %d", first, last, email, &grad_year);
+    sscanf(msg->data, "%s %s %s %d", first, last, email, password, &grad_year);
     
     user_entry_init(&user);
     strncpy(user.first_name, first, MAX_NAME_LEN - 1);
     strncpy(user.last_name, last, MAX_NAME_LEN - 1);
     strncpy(user.email, email, MAX_EMAIL_LEN - 1);
+    strncpy(user.password, password, MAX_PASSWORD_LEN - 1);
     user.grad_year = grad_year;
+    user.is_admin = 0;
     
     if (user_table_insert("users.dat", &user) == 0) {
         resp.status = RESP_OK;
@@ -152,15 +169,28 @@ void handle_register(int client_socket, struct message *msg) {
 void handle_login(int client_socket, struct message *msg) {
     struct response resp;
     int user_id;
+    char password[MAX_PASSWORD_LEN];
     struct user_entry user;
     
-    sscanf(msg->data, "%d", &user_id);
+    sscanf(msg->data, "%d", &user_id, password);
     
     if (user_table_read("users.dat", user_id, &user) == 0) {
-        resp.status = RESP_OK;
-        sprintf(resp.data, "Welcome back, %s %s!", user.first_name, user.last_name);
-        write(client_socket, &resp, sizeof(struct response));
-        write(client_socket, &user_id, sizeof(int));
+        if (strcmp(user.password, password) == 0) {
+            resp.status = RESP_OK;
+            if (user.is_admin) {
+                sprintf(resp.data, "Welcome back, Admin %s %s!", user.first_name, user.last_name);
+            } else {
+                sprintf(resp.data, "Welcome back, %s %s!", user.first_name, user.last_name);
+            }
+            write(client_socket, &resp, sizeof(struct response));
+            write(client_socket, &user_id, sizeof(int));
+        } else {
+            resp.status = RESP_ERROR;
+            strncpy(resp.data, "Incorrect password", MSG_SIZE - 1);
+            write(client_socket, &resp, sizeof(struct response));
+            user_id = -1;
+            write(client_socket, &user_id, sizeof(int));
+        }
     } else {
         resp.status = RESP_ERROR;
         strncpy(resp.data, "User not found", MSG_SIZE - 1);
@@ -346,4 +376,12 @@ void sighandler(int signo) {
         printf("\nServer shutting down\n");
         exit(0);
     }
+}
+
+int check_admin(int user_id) {
+    struct user_entry user;
+    if (user_table_read("users.dat", user_id, &user) == 0) {
+        return user.is_admin;
+    }
+    return 0;
 }
