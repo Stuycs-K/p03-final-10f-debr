@@ -21,3 +21,6 @@ Created protocol.h with message types for client-server communication. Wrote net
 
 ### 2026-01-11 - Completed server handlers and started client interface
 Finished writing server-side handlers for register, login, list clubs, join/leave clubs, and view schedule. Started working on client.c with the main menu system. Got basic client-server communication working with the protocol messages.
+
+### 2026-01-12 - Added authentication and admin system
+Added password field to user entries and implemented password authentication on login. Created an admin role system with a default admin account (ID 1). Started working on admin-specific features. Fixed some critical bugs with login not making the user session work properly.
