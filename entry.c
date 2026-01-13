@@ -1,6 +1,9 @@
 #include "entry.h"
 #include <stdio.h>
 
+#include <string.h>
+#include <time.h>
+
 void user_entry_init(struct user_entry* entry) {
     entry->id = -1;
     
@@ -13,8 +16,13 @@ void user_entry_init(struct user_entry* entry) {
     for (int i= 0; i < MAX_EMAIL_LEN; i++) {
         entry->email[i] = 0;
     }
+
+    for (int i = 0; i < MAX_PASSWORD_LEN; i++) {
+        entry->password[i] = 0;
+    }
     
     entry->grad_year = 0;
+    entry->is_admin = 0;
     
     for(int i = 0; i < MAX_MEMBERSHIPS; i++) {
         entry->memberships[i] = 0;
@@ -22,6 +30,9 @@ void user_entry_init(struct user_entry* entry) {
     
     entry->membership_count = 0;
     entry->active = 1;
+    entry->created_at = time(NULL);
+    entry->updated_at = time(NULL);
+
 }
 
 void club_entry_init(struct club_entry* entry) {
@@ -34,8 +45,12 @@ void club_entry_init(struct club_entry* entry) {
     for(int i = 0; i < 7; i++) {
         entry->days[i] = 0;
     }
-    
+
+    entry->capacity = 50;
+    entry->current_members = 0;
     entry->active = 1;
+    entry->created_at = time(NULL);
+    entry->updated_at = time(NULL);
 }
 
 void user_entry_print(const struct user_entry* entry) {
