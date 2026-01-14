@@ -388,6 +388,144 @@ void handle_view_schedule(int client_socket, int user_id) {
     }
 }
 
+void handle_create_club(int client_socket, struct message *msg, int user_id) {
+    struct response resp;
+    
+    if (!check_admin(user_id)) {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "Admin access required", MSG_SIZE - 1);
+        write(client_socket, &resp, sizeof(struct response));
+        return;
+    }
+    
+    char club_name[MAX_CLUB_NAME_LEN];
+    int days[7], capacity;
+    
+    sscanf(msg->data, "%[^|]|%d %d %d %d %d %d %d|%d", 
+           club_name, &days[0], &days[1], &days[2], &days[3], 
+           &days[4], &days[5], &days[6], &capacity);
+    
+    struct club_entry club;
+    club_entry_init(&club);
+    strncpy(club.club_name, club_name, MAX_CLUB_NAME_LEN - 1);
+    for (int i = 0; i < 7; i++) {
+        club.days[i] = days[i];
+    }
+    club.capacity = capacity;
+    club.current_members = 0;
+    
+    if (club_table_insert("clubs.dat", &club) == 0) {
+        resp.status = RESP_OK;
+        sprintf(resp.data, "Club created! ID: %d", club.id);
+    } else {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "Failed to create club", MSG_SIZE - 1);
+    }
+    
+    write(client_socket, &resp, sizeof(struct response));
+}
+
+void handle_edit_club(int client_socket, struct message *msg, int user_id) {
+    struct response resp;
+    
+    if (!check_admin(user_id)) {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "Admin access required", MSG_SIZE - 1);
+        write(client_socket, &resp, sizeof(struct response));
+        return;
+    }
+    
+    int club_id;
+    char club_name[MAX_CLUB_NAME_LEN];
+    int days[7], capacity;
+    
+    sscanf(msg->data, "%d|%[^|]|%d %d %d %d %d %d %d|%d", 
+           &club_id, club_name, &days[0], &days[1], &days[2], 
+           &days[3], &days[4], &days[5], &days[6], &capacity);
+    
+    struct club_entry club;
+    if (club_table_read("clubs.dat", club_id, &club) == 0) {
+        strncpy(club.club_name, club_name, MAX_CLUB_NAME_LEN - 1);
+        for(int i = 0; i < 7; i++) {
+            club.days[i] = days[i];
+        }
+        club.capacity = capacity;
+        club.updated_at = time(NULL);
+        
+        int index = find_club_index(club_id);
+        if(index != -1) {
+            club_table_update("clubs.dat", index, &club);
+            resp.status = RESP_OK;
+            strncpy(resp.data, "Club updated successfully!", MSG_SIZE - 1);
+        } else {
+            resp.status = RESP_ERROR;
+            strncpy(resp.data, "Failed to update", MSG_SIZE - 1);
+        }
+    } else {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "Club not found", MSG_SIZE - 1);
+    }
+    
+    write(client_socket, &resp, sizeof(struct response));
+}
+
+void handle_delete_club(int client_socket, struct message *msg, int user_id) {
+    struct response resp;
+    
+    if (!check_admin(user_id)) {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "Admin access required", MSG_SIZE - 1);
+        write(client_socket, &resp, sizeof(struct response));
+        return;
+    }
+    
+    int club_id;
+    sscanf(msg->data, "%d", &club_id);
+    
+    if (club_table_delete("clubs.dat", club_id) == 0) {
+        resp.status = RESP_OK;
+        strncpy(resp.data, "Club deleted successfully!", MSG_SIZE - 1);
+    } else {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "Failed to delete club", MSG_SIZE - 1);
+    }
+    
+    write(client_socket, &resp, sizeof(struct response));
+}
+
+int find_club_index(int club_id) {
+    int fd = open("clubs.dat", O_RDONLY);
+    if (fd == -1) return -1;
+    
+    struct club_entry club;
+    int index = 0;
+    
+    while (read(fd, &club, sizeof(struct club_entry)) > 0) {
+        if (club.id == club_id) {
+            close(fd);
+            return index;
+        }
+        index++;
+    }
+    
+    close(fd);
+    return -1;
+}
+
+void handle_get_club_stats(int client_socket, struct message *msg) {
+    int club_id;
+    sscanf(msg->data, "%d", &club_id);
+    
+    struct club_entry club;
+    if (club_table_read("clubs.dat", club_id, &club) == 0) {
+        write(client_socket, &club, sizeof(struct club_entry));
+    } else {
+        struct club_entry empty;
+        club_entry_init(&empty);
+        empty.id = -1;
+        write(client_socket, &empty, sizeof(struct club_entry));
+    }
+}
 
 void sighandler(int signo) {
     if (signo == SIGINT) {
