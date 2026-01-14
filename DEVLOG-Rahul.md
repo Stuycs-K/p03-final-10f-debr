@@ -24,3 +24,6 @@ Finished writing server-side handlers for register, login, list clubs, join/leav
 
 ### 2026-01-12 - Added authentication and admin system
 Added password field to user entries and implemented password authentication on login. Created an admin role system with a default admin account (ID 1). Started working on admin-specific features. Fixed some critical bugs with login not making the user session work properly.
+
+### 2026-01-13 - Implemented admin club management features
+Added message types for admin operations: create club, edit club, delete club. Wrote server-side handlers for these admin functions. Built the client-side admin menu with options to create, edit, and delete clubs. Tested creating clubs with custom schedules and capacities.
