@@ -15,6 +15,9 @@ void handle_register();
 void handle_login();
 void handle_list_clubs();
 void handle_view_schedule();
+void handle_create_club();
+void handle_edit_club();
+void handle_delete_club();
 void clear_screen();
 void pause_screen();
 
@@ -79,37 +82,62 @@ void show_main_menu() {
                     pause_screen();
             }
         } else {
-            printf("1. View Available Clubs\n");
-            printf("2. View My Schedule\n");
-            printf("3. Logout\n");
-            printf("4. Quit\n");
+            if (is_admin) {
+                printf("1. View Available Clubs\n");
+                printf("2. View My Schedule\n");
+                printf("3. Create New Club\n");
+                printf("4. Edit Club\n");
+                printf("5. Delete Club\n");
+                printf("6. Logout\n");
+                printf("7. Quit\n");
+            } else {
+                printf("1. View Available Clubs\n");
+                printf("2. View My Schedule\n");
+                printf("3. Logout\n");
+                printf("4. Quit\n");
+            }
+            
             printf("\nEnter choice: ");
             scanf("%d", &choice);
             char temp[10];
             fgets(temp, 10, stdin);
             
-            switch (choice) {
-                case 1:
-                    handle_list_clubs();
-                    break;
-                case 2:
-                    handle_view_schedule();
-                    break;
-                case 3:
-                    user_id = -1;
-                    printf("\nLogged out successfully!\n");
-                    pause_screen();
-                    break;
-                case 4:
-                    running = 0;
-                    break;
-                default:
-                    printf("Invalid choice!\n");
-                    pause_screen();
+            if (is_admin) {
+                switch (choice) {
+                    case 1: handle_list_clubs(); break;
+                    case 2: handle_view_schedule(); break;
+                    case 3: handle_create_club(); break;
+                    case 4: handle_edit_club(); break;
+                    case 5: handle_delete_club(); break;
+                    case 6:
+                        user_id = -1;
+                        is_admin = 0;
+                        printf("\nLogged out successfully!\n");
+                        pause_screen();
+                        break;
+                    case 7: running = 0; break;
+                    default:
+                        printf("Invalid choice!\n");
+                        pause_screen();
+                }
+            } else {
+                switch (choice) {
+                    case 1: handle_list_clubs(); break;
+                    case 2: handle_view_schedule(); break;
+                    case 3:
+                        user_id = -1;
+                        printf("\nLogged out successfully!\n");
+                        pause_screen();
+                        break;
+                    case 4: running = 0; break;
+                    default:
+                        printf("Invalid choice!\n");
+                        pause_screen();
+                }
             }
         }
     }
-    
+        
     struct message msg;
     msg.type = MSG_QUIT;
     write(server_socket, &msg, sizeof(struct message));
@@ -233,6 +261,7 @@ void handle_list_clubs() {
     
     for (int i = 0; i < count; i++) {
         printf("%d. %s\n", i + 1, clubs[i].club_name);
+        printf("   Members: %d/%d\n", clubs[i].current_members, clubs[i].capacity);
         printf("   Meets on: ");
         
         int first = 1;
@@ -338,6 +367,187 @@ void handle_view_schedule() {
         }
     }
     
+    free(clubs);
+    pause_screen();
+}
+
+
+void handle_create_club() {
+    clear_screen();
+    printf("--- Create New Club ---\n\n");
+    
+    char club_name[MAX_CLUB_NAME_LEN];
+    int days[7] = {0,0,0,0,0,0,0};
+    int capacity;
+    
+    printf("Club Name: ");
+    fgets(club_name, MAX_CLUB_NAME_LEN, stdin);
+    int len = strlen(club_name);
+    if (len > 0 && club_name[len-1] == '\n') {
+        club_name[len-1] = '\0';
+    }
+    
+    printf("\nSelect meeting days (0=No, 1=Yes):\n");
+    printf("Sunday: "); scanf("%d", &days[0]);
+    printf("Monday: "); scanf("%d", &days[1]);
+    printf("Tuesday: "); scanf("%d", &days[2]);
+    printf("Wednesday: "); scanf("%d", &days[3]);
+    printf("Thursday: "); scanf("%d", &days[4]);
+    printf("Friday: "); scanf("%d", &days[5]);
+    printf("Saturday: "); scanf("%d", &days[6]);
+    
+    printf("Capacity: ");
+    scanf("%d", &capacity);
+    char temp[10];
+    fgets(temp, 10, stdin);
+    
+    struct message msg;
+    msg.type = MSG_CREATE_CLUB;
+    sprintf(msg.data, "%s|%d %d %d %d %d %d %d|%d", 
+            club_name, days[0], days[1], days[2], days[3],
+            days[4], days[5], days[6], capacity);
+    
+    write(server_socket, &msg, sizeof(struct message));
+    
+    struct response resp;
+    read(server_socket, &resp, sizeof(struct response));
+    
+    printf("\n%s\n", resp.data);
+    pause_screen();
+}
+
+void handle_edit_club() {
+    clear_screen();
+    
+    struct message list_msg;
+    list_msg.type = MSG_LIST_CLUBS;
+    write(server_socket, &list_msg, sizeof(struct message));
+    
+    int count;
+    read(server_socket, &count, sizeof(int));
+    
+    if (count == 0) {
+        printf("No clubs to edit.\n");
+        pause_screen();
+        return;
+    }
+    
+    struct club_entry *clubs = malloc(count * sizeof(struct club_entry));
+    for (int i = 0; i < count; i++) {
+        read(server_socket, &clubs[i], sizeof(struct club_entry));
+        printf("%d. %s (ID: %d)\n", i + 1, clubs[i].club_name, clubs[i].id);
+    }
+    
+    printf("\nSelect club to edit (0 to cancel): ");
+    int choice;
+    scanf("%d", &choice);
+    char temp[10];
+    fgets(temp, 10, stdin);
+    
+    if (choice == 0 || choice > count) {
+        free(clubs);
+        return;
+    }
+    
+    int club_id = clubs[choice - 1].id;
+    
+    printf("\n--- Edit Club ---\n");
+    char club_name[MAX_CLUB_NAME_LEN];
+    int days[7];
+    int capacity;
+    
+    printf("New Club Name: ");
+    fgets(club_name, MAX_CLUB_NAME_LEN, stdin);
+    int len = strlen(club_name);
+    if (len > 0 && club_name[len-1] == '\n') {
+        club_name[len-1] = '\0';
+    }
+    
+    printf("\nSelect meeting days (0=No, 1=Yes):\n");
+    printf("Sunday: "); scanf("%d", &days[0]);
+    printf("Monday: "); scanf("%d", &days[1]);
+    printf("Tuesday: "); scanf("%d", &days[2]);
+    printf("Wednesday: "); scanf("%d", &days[3]);
+    printf("Thursday: "); scanf("%d", &days[4]);
+    printf("Friday: "); scanf("%d", &days[5]);
+    printf("Saturday: "); scanf("%d", &days[6]);
+    
+    printf("New Capacity: ");
+    scanf("%d", &capacity);
+    fgets(temp, 10, stdin);
+    
+    struct message msg;
+    msg.type = MSG_EDIT_CLUB;
+    sprintf(msg.data, "%d|%s|%d %d %d %d %d %d %d|%d", 
+            club_id, club_name, days[0], days[1], days[2],
+            days[3], days[4], days[5], days[6], capacity);
+    
+    write(server_socket, &msg, sizeof(struct message));
+    
+    struct response resp;
+    read(server_socket, &resp, sizeof(struct response));
+    
+    printf("\n%s\n", resp.data);
+    free(clubs);
+    pause_screen();
+}
+
+void handle_delete_club() {
+    clear_screen();
+    
+    struct message list_msg;
+    list_msg.type = MSG_LIST_CLUBS;
+    write(server_socket, &list_msg, sizeof(struct message));
+    
+    int count;
+    read(server_socket, &count, sizeof(int));
+    
+    if (count == 0) {
+        printf("No clubs to delete.\n");
+        pause_screen();
+        return;
+    }
+    
+    struct club_entry *clubs = malloc(count * sizeof(struct club_entry));
+    for (int i = 0; i < count; i++) {
+        read(server_socket, &clubs[i], sizeof(struct club_entry));
+        printf("%d. %s (ID: %d) - %d members\n", 
+               i + 1, clubs[i].club_name, clubs[i].id, clubs[i].current_members);
+    }
+    
+    printf("\nSelect club to delete (0 to cancel): ");
+    int choice;
+    scanf("%d", &choice);
+    char temp[10];
+    fgets(temp, 10, stdin);
+    
+    if (choice == 0 || choice > count) {
+        free(clubs);
+        return;
+    }
+    
+    int club_id = clubs[choice - 1].id;
+    
+    printf("\nAre you sure you want to delete '%s'? (1=Yes, 0=No): ", clubs[choice - 1].club_name);
+    int confirm;
+    scanf("%d", &confirm);
+    fgets(temp, 10, stdin);
+    
+    if (confirm != 1) {
+        free(clubs);
+        return;
+    }
+    
+    struct message msg;
+    msg.type = MSG_DELETE_CLUB;
+    sprintf(msg.data, "%d", club_id);
+    
+    write(server_socket, &msg, sizeof(struct message));
+    
+    struct response resp;
+    read(server_socket, &resp, sizeof(struct response));
+    
+    printf("\n%s\n", resp.data);
     free(clubs);
     pause_screen();
 }
