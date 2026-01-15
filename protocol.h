@@ -15,6 +15,7 @@
 #define MSG_EDIT_CLUB 9
 #define MSG_DELETE_CLUB 10
 #define MSG_GET_CLUB_STATS 11
+#define MSG_EDIT_PROFILE 12
 
 #define RESP_OK 0
 #define RESP_ERROR -1

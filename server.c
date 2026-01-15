@@ -24,6 +24,7 @@ void handle_view_schedule(int client_socket, int user_id);
 void handle_create_club(int client_socket, struct message *msg, int user_id);
 void handle_edit_club(int client_socket, struct message *msg, int user_id);
 void handle_delete_club(int client_socket, struct message *msg, int user_id);
+void handle_edit_profile(int client_socket, struct message *msg, int user_id);
 void handle_get_club_stats(int client_socket, struct message *msg);
 
 void init_database();
@@ -139,6 +140,9 @@ void subserver(int client_socket) {
                 break;
             case MSG_DELETE_CLUB:   
                 handle_delete_club(client_socket, &msg, user_id);
+                break;
+            case MSG_EDIT_PROFILE:
+                handle_edit_profile(client_socket, &msg, user_id);
                 break;
             case MSG_GET_CLUB_STATS:
                 handle_get_club_stats(client_socket, &msg);
@@ -539,6 +543,46 @@ int find_club_index(int club_id) {
     
     close(fd);
     return -1;
+}
+
+void handle_edit_profile(int client_socket, struct message *msg, int user_id) {
+    struct response resp;
+    
+    if(user_id == -1) {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "Please login first", MSG_SIZE - 1);
+        write(client_socket, &resp, sizeof(struct response));
+        return;
+    }
+    
+    char first[MAX_NAME_LEN], last[MAX_NAME_LEN], email[MAX_EMAIL_LEN];
+    int grad_year;
+    
+    sscanf(msg->data, "%[^|]|%[^|]|%[^|]|%d", first, last, email, &grad_year);
+    
+    struct user_entry user;
+    if (user_table_read("users.dat", user_id, &user) == 0) {
+        strncpy(user.first_name, first, MAX_NAME_LEN - 1);
+        strncpy(user.last_name, last, MAX_NAME_LEN - 1);
+        strncpy(user.email, email, MAX_EMAIL_LEN - 1);
+        user.grad_year = grad_year;
+        user.updated_at = time(NULL);
+        
+        int index = find_user_index(user_id);
+        if (index != -1) {
+            user_table_update("users.dat", index, &user);
+            resp.status = RESP_OK;
+            strncpy(resp.data, "Profile updated!", MSG_SIZE - 1);
+        } else {
+            resp.status = RESP_ERROR;
+            strncpy(resp.data, "Update failed", MSG_SIZE - 1);
+        }
+    } else {
+        resp.status = RESP_ERROR;
+        strncpy(resp.data, "User not found", MSG_SIZE - 1);
+    }
+    
+    write(client_socket, &resp, sizeof(struct response));
 }
 
 void handle_get_club_stats(int client_socket, struct message *msg) {

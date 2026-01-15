@@ -18,6 +18,7 @@ void handle_view_schedule();
 void handle_create_club();
 void handle_edit_club();
 void handle_delete_club();
+void handle_edit_profile();
 void clear_screen();
 void pause_screen();
 
@@ -93,8 +94,9 @@ void show_main_menu() {
             } else {
                 printf("1. View Available Clubs\n");
                 printf("2. View My Schedule\n");
-                printf("3. Logout\n");
-                printf("4. Quit\n");
+                printf("3. Edit My Profile\n");
+                printf("4. Logout\n");
+                printf("5. Quit\n");
             }
             
             printf("\nEnter choice: ");
@@ -124,12 +126,13 @@ void show_main_menu() {
                 switch (choice) {
                     case 1: handle_list_clubs(); break;
                     case 2: handle_view_schedule(); break;
-                    case 3:
+                    case 3: handle_edit_profile(); break;
+                    case 4:
                         user_id = -1;
                         printf("\nLogged out successfully!\n");
                         pause_screen();
                         break;
-                    case 4: running = 0; break;
+                    case 5: running = 0; break;
                     default:
                         printf("Invalid choice!\n");
                         pause_screen();
@@ -549,5 +552,48 @@ void handle_delete_club() {
     
     printf("\n%s\n", resp.data);
     free(clubs);
+    pause_screen();
+}
+
+void handle_edit_profile() {
+    clear_screen();
+    printf("--- Edit Profile ---\n\n");
+    
+    printf("Leave blank to keep current value\n\n");
+    
+    char first[MAX_NAME_LEN], last[MAX_NAME_LEN], email[MAX_EMAIL_LEN];
+    int grad_year;
+    int len;
+    
+    printf("New First Name: ");
+    fgets(first, MAX_NAME_LEN, stdin);
+    len = strlen(first);
+    if (len > 0 && first[len - 1] == '\n') first[len - 1] = 0;
+    
+    printf("New Last Name: ");
+    fgets(last, MAX_NAME_LEN, stdin);
+    len = strlen(last);
+    if (len > 0 && last[len - 1] == '\n') last[len - 1] = 0;
+    
+    printf("New Email: ");
+    fgets(email, MAX_EMAIL_LEN, stdin);
+    len = strlen(email);
+    if (len > 0 && email[len - 1] == '\n') email[len - 1] = 0;
+    
+    printf("New Graduation Year: ");
+    scanf("%d", &grad_year);
+    char temp[10];
+    fgets(temp, 10, stdin);
+    
+    struct message msg;
+    msg.type = MSG_EDIT_PROFILE;
+    sprintf(msg.data, "%s|%s|%s|%d", first, last, email, grad_year);
+    
+    write(server_socket, &msg, sizeof(struct message));
+    
+    struct response resp;
+    read(server_socket, &resp, sizeof(struct response));
+    
+    printf("\n%s\n", resp.data);
     pause_screen();
 }
