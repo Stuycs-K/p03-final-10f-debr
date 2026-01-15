@@ -518,6 +518,37 @@ void handle_delete_club(int client_socket, struct message *msg, int user_id) {
     sscanf(msg->data, "%d", &club_id);
     
     if (club_table_delete("clubs.dat", club_id) == 0) {
+        int fd = open("users.dat", O_RDONLY);
+        if (fd != -1) {
+            struct stat st;
+            stat("users.dat", &st);
+            int count = st.st_size / sizeof(struct user_entry);
+            
+            for (int i = 0; i < count; i++) {
+                struct user_entry user;
+                lseek(fd, i * sizeof(struct user_entry), SEEK_SET);
+                read(fd, &user, sizeof(struct user_entry));
+                
+                int found = -1;
+                for (int j = 0; j < user.membership_count; j++) {
+                    if (user.memberships[j] == club_id) {
+                        found = j;
+                        break;
+                    }
+                }
+                
+                if (found != -1) {
+                    for (int j = found; j < user.membership_count - 1; j++) {
+                        user.memberships[j] = user.memberships[j + 1];
+                    }
+                    user.membership_count--;
+                    user.updated_at = time(NULL);
+                    user_table_update("users.dat", i, &user);
+                }
+            }
+            close(fd);
+        }
+
         resp.status = RESP_OK;
         strncpy(resp.data, "Club deleted successfully!", MSG_SIZE - 1);
     } else {
