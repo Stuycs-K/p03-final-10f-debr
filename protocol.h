@@ -1,7 +1,7 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
-#define MSG_SIZE 256
+#define MSG_SIZE 512
 
 #define MSG_REGISTER 1
 #define MSG_LOGIN 2

@@ -29,6 +29,7 @@ void handle_get_club_stats(int client_socket, struct message *msg);
 
 void init_database();
 int find_user_index(int user_id);
+int find_club_index(int club_id);
 int check_admin(int user_id);
 
 int main() {
@@ -167,8 +168,8 @@ void handle_register(int client_socket, struct message *msg) {
     char first[MAX_NAME_LEN], last[MAX_NAME_LEN], email[MAX_EMAIL_LEN], password[MAX_PASSWORD_LEN];
     int grad_year;
     
-    sscanf(msg->data, "%s %s %s %d", first, last, email, password, &grad_year);
-    
+    sscanf(msg->data, "%s %s %s %s %d", first, last, email, password, &grad_year);
+
     user_entry_init(&user);
     strncpy(user.first_name, first, MAX_NAME_LEN - 1);
     strncpy(user.last_name, last, MAX_NAME_LEN - 1);
@@ -194,7 +195,7 @@ void handle_login(int client_socket, struct message *msg) {
     char password[MAX_PASSWORD_LEN];
     struct user_entry user;
     
-    sscanf(msg->data, "%d", &user_id, password);
+    sscanf(msg->data, "%d %s", &user_id, password);
     
     if (user_table_read("users.dat", user_id, &user) == 0) {
         if (strcmp(user.password, password) == 0) {

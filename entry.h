@@ -22,7 +22,6 @@ struct user_entry {
     int memberships[MAX_MEMBERSHIPS];
     int membership_count;
     int active;
-    int active;
     time_t created_at;
     time_t updated_at;
 

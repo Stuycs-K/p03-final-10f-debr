@@ -184,7 +184,7 @@ void handle_register() {
     
     struct message msg;
     msg.type = MSG_REGISTER;
-    sprintf(msg.data, "%s %s %s %d", first, last, email, password, grad_year);
+    sprintf(msg.data, "%s %s %s %s %d", first, last, email, password, grad_year);
     
     write(server_socket, &msg, sizeof(struct message));
     
@@ -215,7 +215,7 @@ void handle_login() {
     
     struct message msg;
     msg.type = MSG_LOGIN;
-    sprintf(msg.data, "%d", id, password);
+    sprintf(msg.data, "%d %s", id, password);
     
     write(server_socket, &msg, sizeof(struct message));
     
