@@ -15,7 +15,7 @@
 void sighandler(int signo);
 void subserver(int client_socket);
 void handle_register(int client_socket, struct message *msg);
-void handle_login(int client_socket, struct message *msg);
+void handle_login(int client_socket, struct message *msg, int *user_id);
 void handle_list_clubs(int client_socket);
 void handle_join_club(int client_socket, struct message *msg, int user_id);
 void handle_leave_club(int client_socket, struct message *msg, int user_id);
@@ -119,7 +119,7 @@ void subserver(int client_socket) {
                 handle_register(client_socket, &msg);
                 break;
             case MSG_LOGIN:
-                handle_login(client_socket, &msg);
+                handle_login(client_socket, &msg, &user_id);
                 break;
             case MSG_LIST_CLUBS:
                 handle_list_clubs(client_socket);
@@ -189,37 +189,38 @@ void handle_register(int client_socket, struct message *msg) {
     write(client_socket, &resp, sizeof(struct response));
 }
 
-void handle_login(int client_socket, struct message *msg) {
+void handle_login(int client_socket, struct message *msg, int *user_id) {
     struct response resp;
-    int user_id;
+    int login_user_id;
     char password[MAX_PASSWORD_LEN];
     struct user_entry user;
     
-    sscanf(msg->data, "%d %s", &user_id, password);
+    sscanf(msg->data, "%d %s", &login_user_id, password);
     
-    if (user_table_read("users.dat", user_id, &user) == 0) {
+    if (user_table_read("users.dat", login_user_id, &user) == 0) {
         if (strcmp(user.password, password) == 0) {
             resp.status = RESP_OK;
+            *user_id = login_user_id;
             if (user.is_admin) {
                 sprintf(resp.data, "Welcome back, Admin %s %s!", user.first_name, user.last_name);
             } else {
                 sprintf(resp.data, "Welcome back, %s %s!", user.first_name, user.last_name);
             }
             write(client_socket, &resp, sizeof(struct response));
-            write(client_socket, &user_id, sizeof(int));
+            write(client_socket, user_id, sizeof(int));
         } else {
             resp.status = RESP_ERROR;
             strncpy(resp.data, "Incorrect password", MSG_SIZE - 1);
             write(client_socket, &resp, sizeof(struct response));
-            user_id = -1;
-            write(client_socket, &user_id, sizeof(int));
+            login_user_id = -1;
+            write(client_socket, &login_user_id, sizeof(int));
         }
     } else {
         resp.status = RESP_ERROR;
         strncpy(resp.data, "User not found", MSG_SIZE - 1);
         write(client_socket, &resp, sizeof(struct response));
-        user_id = -1;
-        write(client_socket, &user_id, sizeof(int));
+        login_user_id = -1;
+        write(client_socket, &login_user_id, sizeof(int));
     }
 }
 
