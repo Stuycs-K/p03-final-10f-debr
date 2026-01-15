@@ -27,3 +27,6 @@ Added password field to user entries and implemented password authentication on 
 
 ### 2026-01-13 - Implemented admin club management features
 Added message types for admin operations: create club, edit club, delete club. Wrote server-side handlers for these admin functions. Built the client-side admin menu with options to create, edit, and delete clubs. Tested creating clubs with custom schedules and capacities.
+
+### 2026-01-14 - Added profile editing and capacity limits
+Implemented profile editing so users can update their name, email, and graduation year. Added capacity checking when joining clubs so they can't exceed their member limit. Updated member counts when users join/leave clubs. Fixed format string bugs and warnings about data type mismatches. Increased message buffer size to prevent overflow.
