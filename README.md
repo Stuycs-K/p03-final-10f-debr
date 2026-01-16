@@ -10,6 +10,8 @@ A client-server application that lets students manage their club memberships. St
   
 ## Video Demo:
 
+[View the Video Here](https://youtu.be/SnpzDTPa6KA)
+
 ## How to Compile and Run
 
 ### Compilation:
