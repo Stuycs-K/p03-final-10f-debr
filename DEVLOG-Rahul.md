@@ -30,3 +30,6 @@ Added message types for admin operations: create club, edit club, delete club. W
 
 ### 2026-01-14 - Added profile editing and capacity limits
 Implemented profile editing so users can update their name, email, and graduation year. Added capacity checking when joining clubs so they can't exceed their member limit. Updated member counts when users join/leave clubs. Fixed format string bugs and warnings about data type mismatches. Increased message buffer size to prevent overflow.
+
+### 2026-01-15 - Finishing up project
+Updating README and recording video
